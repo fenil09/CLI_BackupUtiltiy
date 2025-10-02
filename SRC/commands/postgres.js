@@ -2,7 +2,7 @@
 
 const {exec} = require('child_process')
 const path = require('path')
-
+const backupmodel = require('../models/Backup')
 function backupPostgres(dbName, user,outputDir){
     const timestamp = new Date().toISOString().replace(/[:.]/g,"-")
     const outputPath = path.join(outputDir, `postgres-backup-${dbName}-${timestamp}.sql`)
@@ -12,13 +12,23 @@ function backupPostgres(dbName, user,outputDir){
  
         if(error){
             console.error(`Backup failed: ${error.message}`)
-            return
+            return 
         }
         if(stderr){
             console.error(`Backup stderr: ${stderr}`)
-            return
         }
         console.log(`Backup completed successfully, file stored at: ${outputPath}`)
+        backupmodel.create({
+            dbType:"postgresql",
+            status:"success",
+            filepath:outputPath,
+            timestamp : timestamp
+        }).then(()=>{
+            console.log("backup saved to backupdatabase")
+        }).catch(()=>{
+            console.error("error saving to mongoDB",error);
+        })
+
     })
 }
 module.exports = backupPostgres;
