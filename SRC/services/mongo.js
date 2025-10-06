@@ -11,7 +11,7 @@ const UploadtoS3 = require('../utils/S3')
         // creating the timestamp first
         const timestamp = new Date().toISOString().replace(/[:.]/g,"-")
         const outputdir = path.join(__dirname,"../../backups"); // 
-        const backupfile = path.join(outputdir,`archive.gz`);
+        const backupfile = path.join(outputdir,`archive.gz_${timestamp}`);
 
           // we are going to make sure that backup folder is existing
 
@@ -20,7 +20,7 @@ const UploadtoS3 = require('../utils/S3')
          
            // building the command for backup
 
-            const command = `mongodump --uri="${dburi}" --archive="${outputdir}" --gzip`; // we changed the way our command was producing the backup file we removed the timestamped folder and instead generated an archived file inside the backup folder directly.
+            const command = `mongodump --uri="${dburi}" --archive="${backupfile}" --gzip`; // we changed the way our command was producing the backup file we removed the timestamped folder and instead generated an archived file inside the backup folder directly.
             // The only reason to do this is because aws s3 when upload is invoke it needs a file that it can push to the s3 bucket, we cannot provide a folder to it.
         // -> mongodump is a built in backup till that mongodb provides, so this command needs an url of the database that needs the backup
         // so our command would be having the uri that the user passes and then it is going to generate an output folder with the backup files
@@ -32,19 +32,6 @@ const UploadtoS3 = require('../utils/S3')
                 else{
                     console.log("backup completed",outputdir)
                     UploadtoS3(backupfile,process.env.S3_BUCKET_NAME)
-                    const dbNameMatch = dburi.match(/^([a-zA-Z]+):\/\//); // Regex to extract the database name
-                    const dbName = dbNameMatch ? dbNameMatch[1] : null;
-                    console.log(dbName)
-                   backupModel.create({
-                        dbType: dbName,
-                        status: "success",
-                        filepath: outputdir,
-                        timestamp:timestamp
-                    }).then(() => {
-                        console.log("Backup record saved to database");
-                    }).catch((dbErr) => {
-                        console.error("Error saving backup record to database:", dbErr);
-                    });
                     resolve(outputdir)
                 }
                
